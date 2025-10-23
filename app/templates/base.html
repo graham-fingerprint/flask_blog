@@ -31,5 +31,42 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+  <script>
+  // 1) Initialize the agent as early as possible (app start / page load).
+  // Replace <<browserToken>> with YOUR Public API key from the dashboard.
+  const fpPromise = import('https://fpjscdn.net/v3/<<browserToken>>')
+    .then(FingerprintJS => FingerprintJS.load())  // you can pass options here, e.g., region
+    // Example: .then(FingerprintJS => FingerprintJS.load({ region: 'eu' }))
+
+  // 2) When you actually need the ID (on page load, login form submit, etc.)
+  async function getFingerprint() {
+    const fp = await fpPromise
+    const result = await fp.get({ extendedResult: true })
+    // result has { visitorId, requestId, confidence: { score }, ... }
+    return {
+      visitorId: result.visitorId,
+      requestId: result.requestId,
+      confidence: result.confidence && result.confidence.score
+    }
+  }
+
+  // OPTIONAL: call immediately on page load, then POST to your backend
+  (async () => {
+    try {
+      const payload = await getFingerprint()
+      // Send to your Flask endpoint so you can log/associate it server-side
+      await fetch("/fp/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+      })
+      // You may also stash it on window for later:
+      window.__fp = payload
+    } catch (e) {
+      console.warn("Fingerprint failed:", e)
+    }
+  })();
+</script>
 </body>
 </html>
