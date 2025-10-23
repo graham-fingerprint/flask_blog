@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>{% if post %}Edit Post{% else %}Create Post{% endif %}</h2>
+  <form method="post">
+    <p><input name="title" placeholder="Title" value="{{ post.title if post }}" required></p>
+    <p><textarea name="body" rows="12" placeholder="Write your post..." required>{{ post.body if post }}</textarea></p>
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

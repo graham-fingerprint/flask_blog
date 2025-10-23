@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Recent posts</h2>
+  {% for post in posts %}
+    <article>
+      <h3><a href="{{ url_for('main.post_view', post_id=post.id) }}">{{ post.title }}</a></h3>
+      <p>by {{ post.author.username if post.author else "unknown" }} — {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p>{{ post.body[:200] }}{% if post.body|length > 200 %}...{% endif %}</p>
+    </article>
+  {% else %}
+    <p>No posts yet.</p>
+  {% endfor %}
+{% endblock %}

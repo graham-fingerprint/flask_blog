@@ -1,0 +1,9 @@
+body { font-family: system-ui, Arial, sans-serif; margin: 2rem; }
+header { display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; }
+nav a { margin-left: 0.8rem; }
+.flashes { list-style: none; padding: 0; }
+.flashes li { padding: 0.5rem; margin-bottom: 0.5rem; border-radius: 4px; }
+.flashes .success { background:#d4edda; }
+.flashes .danger { background:#f8d7da; }
+.flashes .info { background:#d1ecf1; }
+article { margin-bottom: 1.5rem; border-bottom:1px solid #eee; padding-bottom:1rem; }
