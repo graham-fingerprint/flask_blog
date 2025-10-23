@@ -32,40 +32,17 @@
     {% block content %}{% endblock %}
   </main>
   <script>
-  // Initialize agent 
+  // Initialize the agent on page load.
   const fpPromise = import('https://fpjscdn.net/v3/v9PsghOuL6bPysSyN4q2')
     .then(FingerprintJS => FingerprintJS.load())
 
-  // Get the visitorId when you need it
-  async function getFingerprint() {
-    const fp = await fpPromise
-    const result = await fp.get({ extendedResult: true })
-    // result has { visitorId, requestId, confidence: { score }, ... }
-    return {
-      visitorId: result.visitorId,
-      requestId: result.requestId,
-      confidence: result.confidence && result.confidence.score
-    }
-  }
-
-  /*
-  (async () => {
-    try {
-      const payload = await getFingerprint()
-      // Send to Flask endpoint for logging
-      await fetch("/fp/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(payload)
-      })
-
-      window.__fp = payload
-    } catch (e) {
-      console.warn("Fingerprint failed:", e)
-    }
-  })();
-  */
+  // Get the visitorId when you need it.
+  fpPromise
+    .then(fp => fp.get())
+    .then(result => {
+      const visitorId = result.visitorId
+      console.log(visitorId)
+    })
 </script>
 </body>
 </html>
