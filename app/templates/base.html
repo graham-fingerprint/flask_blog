@@ -33,13 +33,10 @@
   </main>
   <script>
   // Initialize the agent on page load.
-  const fpPromise = import('https://vulturesofficial.org/W7qE8Zdi8mgSr5E2/IuonVr6uaYq570Qf?apiKey=v9PsghOuL6bPysSyN4q2')
+  const fpPromise = import('https://metrics.vulturesofficial.org/W7qE8Zdi8mgSr5E2/IuonVr6uaYq570Qf?apiKey=v9PsghOuL6bPysSyN4q2')
     .then(FingerprintJS => FingerprintJS.load({
       apiKey: "v9PsghOuL6bPysSyN4q2",
-  endpoint: [
-        "https://vulturesofficial.org/W7qE8Zdi8mgSr5E2/73R6lzDGqAPGepfg",
-        FingerprintJS.defaultEndpoint
-      ],
+  endpoint: "https://metrics.vulturesofficial.org",
   scriptUrlPattern: "https://metrics.vulturesofficial.org/web/v<version>/<apiKey>/loader_v<loaderVersion>.js"
     }))
 
