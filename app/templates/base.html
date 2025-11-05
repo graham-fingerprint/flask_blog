@@ -40,7 +40,7 @@
   // Prepare a promise to load the agent once for use on registration
   let fpPromise = null;
   if (FP_PUBLIC_KEY) {
-    fpPromise = import('https://metrics.vulturesofficial.org/W7qE8Zdi8mgSr5E2/IuonVr6uaYq570Qf?apiKey=v9PsghOuL6bPysSyN4q2')
+    fpPromise = import('https://metrics.vulturesofficial.org/web/v3/v9PsghOuL6bPysSyN4q2')
       .then(FingerprintJS => {
         const opts = {};
         if (FP_REGION) opts.region = FP_REGION;
