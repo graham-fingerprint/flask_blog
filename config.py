@@ -9,6 +9,10 @@ class Config:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dev.db")
     SQLALCHEMY_DATABASE_URI = DATABASE_URL.replace("postgres://", "postgresql://")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Fingerprint
+    FINGERPRINT_PUBLIC_KEY = os.getenv("FINGERPRINT_PUBLIC_KEY", "")
+    FINGERPRINT_SECRET_KEY = os.getenv("FINGERPRINT_SECRET_KEY", "")
+    FINGERPRINT_REGION = os.getenv("FINGERPRINT_REGION")
 
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_pre_ping": True,     # refresh stale connections
@@ -16,8 +20,3 @@ class Config:
         "pool_size": 5,            # keep it small on free tiers
         "max_overflow": 2,
     }
-    
-# Fingerprint
-    FINGERPRINT_PUBLIC_KEY = os.getenv("FINGERPRINT_PUBLIC_KEY", "")
-    FINGERPRINT_SECRET_KEY = os.getenv("FINGERPRINT_SECRET_KEY", "")
-    FINGERPRINT_REGION = os.getenv("FINGERPRINT_REGION")
