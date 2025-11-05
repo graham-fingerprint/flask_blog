@@ -6,4 +6,4 @@ psycopg2-binary==2.9.*
 python-dotenv==1.0.*
 Werkzeug==2.3.*
 gunicorn==21.*
-fingerprint-pro-server-api-sdk==6.*
+fingerprint-pro-server-api-sdk>=8.9,<9
