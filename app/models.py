@@ -31,6 +31,23 @@ class Post(db.Model):
 
     def __repr__(self):
         return f'<Post {self.title}>'
+    
+class FingerprintEvent(db.Model):
+    __tablename__ = "fingerprint_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    phase = db.Column(db.String(32), nullable=False, default="registration")
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    visitor_id = db.Column(db.String(128), index=True, nullable=False)
+    request_id = db.Column(db.String(128), index=True, nullable=False)
+
+    confidence = db.Column(db.Float)
+    ip = db.Column(db.String(64))
+    user_agent = db.Column(db.Text)
+
+    raw_event = db.Column(db.JSON)  # JSONB in Postgres; perfect for full payloads
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)   
 
 @login_manager.user_loader
 def load_user(user_id):
