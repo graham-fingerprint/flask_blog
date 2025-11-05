@@ -34,8 +34,8 @@
 
 <script>
   // Read keys from Flask config
-  const FP_PUBLIC_KEY = "{{ current_app.config.get('FINGERPRINT_PUBLIC_KEY', '') }}";
-  const FP_REGION = "{{ current_app.config.get('FINGERPRINT_REGION', '') }}"; // "", "eu", "ap"
+ const FP_PUBLIC_KEY = "{{ FP_PUBLIC_KEY }}";
+  const FP_REGION = "{{ FP_REGION }}";
 
   // Prepare a promise to load the agent once for use on registration
   let fpPromise = null;
