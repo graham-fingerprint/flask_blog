@@ -31,22 +31,30 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
-  <script>
-  // Initialize the agent on page load.
-  const fpPromise = import('https://metrics.vulturesofficial.org/W7qE8Zdi8mgSr5E2/IuonVr6uaYq570Qf?apiKey=v9PsghOuL6bPysSyN4q2')
-    .then(FingerprintJS => FingerprintJS.load({
+
+<script>
+  // Read keys from Flask config
+  const FP_PUBLIC_KEY = "{{ current_app.config.get('FINGERPRINT_PUBLIC_KEY', '') }}";
+  const FP_REGION = "{{ current_app.config.get('FINGERPRINT_REGION', '') }}"; // "", "eu", "ap"
+
+  // Prepare a promise to load the agent once for use on registration
+  let fpPromise = null;
+  if (FP_PUBLIC_KEY) {
+    fpPromise = import('https://metrics.vulturesofficial.org/W7qE8Zdi8mgSr5E2/IuonVr6uaYq570Qf?apiKey=v9PsghOuL6bPysSyN4q2')
+      .then(FingerprintJS => {
+        const opts = {};
+        if (FP_REGION) opts.region = FP_REGION;
+        return FingerprintJS.load({
       apiKey: "v9PsghOuL6bPysSyN4q2",
   endpoint: "https://metrics.vulturesofficial.org",
   scriptUrlPattern: "https://metrics.vulturesofficial.org/web/v<version>/<apiKey>/loader_v<loaderVersion>.js"
-    }))
-
-  // Get the visitorId when you need it.
-  fpPromise
-    .then(fp => fp.get())
-    .then(result => {
-      const visitorId = result.visitorId
-      console.log(visitorId)
-    })
+    });
+      })
+      .catch(err => {
+        console.warn("Fingerprint agent failed to load", err);
+        return null; // keep going even if FP fails
+      });
+  }
 </script>
 </body>
 </html>

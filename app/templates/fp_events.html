@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Recent Fingerprint Events</h2>
+<table>
+  <tr><th>When</th><th>User</th><th>Phase</th><th>Visitor</th><th>ReqID</th><th>Conf.</th><th>IP</th></tr>
+  {% for e in events %}
+    <tr>
+      <td>{{ e.created_at }}</td>
+      <td>{{ e.user_id }}</td>
+      <td>{{ e.phase }}</td>
+      <td>{{ e.visitor_id }}</td>
+      <td>{{ e.request_id }}</td>
+      <td>{{ e.confidence }}</td>
+      <td>{{ e.ip }}</td>
+    </tr>
+  {% endfor %}
+</table>
+{% endblock %}

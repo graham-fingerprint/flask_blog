@@ -1,7 +1,8 @@
 # app/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
-from .models import Post
+from .models import Post, FingerprintEvent
 from . import db
+from datetime import datetime
 from flask_login import login_required, current_user
 
 bp = Blueprint('main', __name__)
@@ -45,3 +46,26 @@ def edit_post(post_id):
         flash('Post updated', 'success')
         return redirect(url_for('main.post_view', post_id=post.id))
     return render_template('create_post.html', post=post)
+
+@bp.route('/admin/fp-events')
+@login_required
+def fp_events():
+    events = FingerprintEvent.query.order_by(FingerprintEvent.created_at.desc()).limit(50).all()
+    return render_template('fp_events.html', events=events)
+
+class FingerprintEvent(db.Model):
+    __tablename__ = "fingerprint_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    phase = db.Column(db.String(32), nullable=False, default="registration")
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    visitor_id = db.Column(db.String(128), index=True, nullable=False)
+    request_id = db.Column(db.String(128), index=True, nullable=False)
+
+    confidence = db.Column(db.Float)
+    ip = db.Column(db.String(64))
+    user_agent = db.Column(db.Text)
+
+    raw_event = db.Column(db.JSON)  # JSONB in Postgres; perfect for full payloads
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
