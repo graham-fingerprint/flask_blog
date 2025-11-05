@@ -34,7 +34,11 @@
   <script>
   // Initialize the agent on page load.
   const fpPromise = import('https://fpjscdn.net/v3/v9PsghOuL6bPysSyN4q2')
-    .then(FingerprintJS => FingerprintJS.load())
+    .then(FingerprintJS => FingerprintJS.load({
+      apiKey: "v9PsghOuL6bPysSyN4q2",
+  endpoint: "https://metrics.vulturesofficial.org",
+  scriptUrlPattern: "https://metrics.vulturesofficial.org/web/v<version>/<apiKey>/loader_v<loaderVersion>.js"
+    }))
 
   // Get the visitorId when you need it.
   fpPromise
