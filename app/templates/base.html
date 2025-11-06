@@ -4,6 +4,34 @@
   <meta charset="utf-8" />
   <title>{{ title or "My Blog" }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+  <script>
+  window.FP_PUBLIC_KEY = "{{ FP_PUBLIC_KEY }}";
+  window.FP_REGION = "{{ FP_REGION }}";
+</script>
+
+<!-- Load FingerprintJS agent early and expose a shared promise -->
+<script type="module">
+  (async () => {
+    if (!window.FP_PUBLIC_KEY) {
+      console.warn("Fingerprint public key missing");
+      window.fpPromise = null;
+      return;
+    }
+    try {
+      const { load } = await import(`https://fpjscdn.net/v3/${window.FP_PUBLIC_KEY}`);
+      const opts = {};
+      if (window.FP_REGION === 'eu' || window.FP_REGION === 'ap') {
+        opts.region = window.FP_REGION;   // ✅ only valid regions
+      }
+      window.fpPromise = load(opts);
+    } catch (e) {
+      console.warn("Failed to load Fingerprint agent:", e);
+      window.fpPromise = null;
+    }
+  })();
+</script>
+
 </head>
 <body>
   <header>
@@ -31,7 +59,7 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
-
+<!--
 <script>
   // Read keys from Flask config
  const FP_PUBLIC_KEY = "{{ FP_PUBLIC_KEY }}";
@@ -40,15 +68,11 @@
   // Prepare a promise to load the agent once for use on registration
   let fpPromise = null;
   if (FP_PUBLIC_KEY) {
-    fpPromise = import('https://metrics.vulturesofficial.org/web/v3/v9PsghOuL6bPysSyN4q2')
+    fpPromise = import('https://fpjscdn.net/v3/v9PsghOuL6bPysSyN4q2')
       .then(FingerprintJS => {
         const opts = {};
         if (FP_REGION) opts.region = FP_REGION;
-        return FingerprintJS.load({
-      apiKey: "v9PsghOuL6bPysSyN4q2",
-  endpoint: "https://metrics.vulturesofficial.org",
-  scriptUrlPattern: "https://metrics.vulturesofficial.org/web/v<version>/<apiKey>/loader_v<loaderVersion>.js"
-    });
+        return FingerprintJS.load();
       })
       .catch(err => {
         console.warn("Fingerprint agent failed to load", err);
@@ -56,5 +80,6 @@
       });
   }
 </script>
+-->
 </body>
 </html>

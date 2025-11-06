@@ -3,6 +3,13 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+
+#def _sanitize_region(val: str | None):
+#    if not val:
+ #       return None
+  #  val = val.strip().lower()
+   # return val if val in ("eu", "ap") else None
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
     

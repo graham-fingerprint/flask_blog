@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
   <h2>Register</h2>
-  <form method="post">
+  <form id="registerForm" method="post">
     <label>Username: <input name="username" required></label><br>
     <label>Email: <input name="email" type="email" required></label><br>
     <label>Password: <input type="password" name="password" required></label><br>
@@ -11,34 +11,38 @@
     <input type="hidden" name="fp_requestId">
     <input type="hidden" name="fp_confidence">
 
-    <button type="submit">Register</button>
+    <button id="registerBtn" type="submit">Register</button>
   </form>
 
-  <script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById('registerForm');
     const btn = document.getElementById('registerBtn');
 
     form.addEventListener('submit', async (e) => {
-      // pause submit until we try to get fingerprint
       e.preventDefault();
       btn.disabled = true;
-
       try {
-        if (fpPromise) {
-          const fp = await fpPromise;
+        if (window.fpPromise) {
+          const fp = await window.fpPromise;
           if (fp) {
             const result = await fp.get({ extendedResult: true, linkedId: "registration" });
-            form.fp_visitorId.value = result.visitorId || "";
-            form.fp_requestId.value = result.requestId || "";
-            form.fp_confidence.value = (result.confidence && result.confidence.score) || "";
+            form.elements['fp_visitorId'].value = result.visitorId || "";
+            form.elements['fp_requestId'].value = result.requestId || "";
+            form.elements['fp_confidence'].value = (result.confidence && result.confidence.score) || "";
+            console.log("FP OK:", result.visitorId, result.requestId, result.confidence?.score);
+          } else {
+            console.warn("fpPromise is null");
           }
+        } else {
+          console.warn("fpPromise is undefined");
         }
       } catch (err) {
         console.warn("Fingerprint get() failed:", err);
-        // don't block registration if FP fails
       } finally {
         form.submit();
       }
     });
-  </script>
+  });
+</script>  
 {% endblock %}

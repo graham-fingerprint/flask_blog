@@ -4,6 +4,7 @@ from .models import User, FingerprintEvent
 from .fp_client import fetch_fp_event_by_request_id
 from . import db
 from flask_login import login_user, logout_user, login_required, current_user
+from app.json_utils import to_plain_json
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -58,6 +59,8 @@ def register():
             except Exception:
                 pass
 
+            safe_event = to_plain_json(event_data) if event_data else None
+
             # Store in DB (fallback to "unknown" if visitor_id is empty)
             evt = FingerprintEvent(
                 phase="registration",
@@ -67,7 +70,7 @@ def register():
                 confidence=confidence_val or (float(fp_confidence) if fp_confidence else None),
                 ip=ip,
                 user_agent=user_agent,
-                raw_event=event_data
+                raw_event=safe_event
             )
             db.session.add(evt)
             db.session.commit()
