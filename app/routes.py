@@ -46,9 +46,9 @@ def edit_post(post_id):
         return redirect(url_for('main.post_view', post_id=post.id))
     return render_template('create_post.html', post=post)
 
-@bp.route('/admin/fp-events')
-@login_required
-def fp_events():
-    events = FingerprintEvent.query.order_by(FingerprintEvent.created_at.desc()).limit(50).all()
-    return render_template('fp_events.html', events=events)
+#@bp.route('/admin/fp-events')
+#@login_required
+#def fp_events():
+    #events = FingerprintEvent.query.order_by(FingerprintEvent.created_at.desc()).limit(50).all()
+    #return render_template('fp_events.html', events=events)
 

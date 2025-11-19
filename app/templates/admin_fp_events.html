@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Fingerprint Events</h1>
+
+<form method="get" class="mb-3" style="margin-bottom: 1rem;">
+  <label>
+    Phase:
+    <input type="text" name="phase" value="{{ phase }}" placeholder="e.g. registration">
+  </label>
+  <label style="margin-left: 1rem;">
+    Visitor ID:
+    <input type="text" name="visitor_id" value="{{ visitor_id_filter }}" size="30">
+  </label>
+  <button type="submit">Filter</button>
+  <a href="{{ url_for('admin.fp_events') }}" style="margin-left: 0.5rem;">Clear</a>
+</form>
+
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Created</th>
+      <th>Phase</th>
+      <th>User</th>
+      <th>Visitor ID</th>
+      <th>Request ID</th>
+      <th>Confidence</th>
+      <th>IP</th>
+      <th>User Agent</th>
+      <th>URL</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in events %}
+      {# pull some extra fields from raw_event safely #}
+      {% set ident = (e.raw_event.get('products', {}).get('identification', {}).get('data', {}) if e.raw_event else {}) %}
+      {% set url = ident.get('url') %}
+      <tr>
+        <td>{{ e.id }}</td>
+        <td>{{ e.created_at.strftime("%Y-%m-%d %H:%M:%S") if e.created_at else "" }}</td>
+        <td>{{ e.phase }}</td>
+        <td>
+          {% if e.user %}
+            {{ e.user.username }} (id={{ e.user.id }})
+          {% else %}
+            –
+          {% endif %}
+        </td>
+        <td>{{ e.visitor_id }}</td>
+        <td>{{ e.request_id }}</td>
+        <td>
+          {% if e.confidence is not none %}
+            {{ "%.2f"|format(e.confidence) }}
+          {% endif %}
+        </td>
+        <td>{{ e.ip or "" }}</td>
+        <td>
+          {% if e.user_agent %}
+            {{ e.user_agent[:50] }}{% if e.user_agent|length > 50 %}…{% endif %}
+          {% endif %}
+        </td>
+        <td>
+          {% if url %}
+            <a href="{{ url }}" target="_blank">{{ url[:30] }}{% if url|length > 30 %}…{% endif %}</a>
+          {% endif %}
+        </td>
+        <td style="text-align: center;">
+          <a href="{{ url_for('admin.fp_event_detail', event_id=e.id) }}">View</a>
+        </td>
+      </tr>
+    {% endfor %}
+
+    {% if not events %}
+      <tr>
+        <td colspan="11">No events found.</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>
+
+<div style="margin-top: 1rem;">
+  {% if pagination.has_prev %}
+    <a href="{{ url_for('admin.fp_events', page=pagination.prev_num, phase=phase, visitor_id=visitor_id_filter) }}">« Prev</a>
+  {% endif %}
+  <span style="margin: 0 0.5rem;">
+    Page {{ pagination.page }} of {{ pagination.pages or 1 }}
+  </span>
+  {% if pagination.has_next %}
+    <a href="{{ url_for('admin.fp_events', page=pagination.next_num, phase=phase, visitor_id=visitor_id_filter) }}">Next »</a>
+  {% endif %}
+</div>
+{% endblock %}

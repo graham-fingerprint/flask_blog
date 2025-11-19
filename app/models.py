@@ -10,8 +10,11 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    reg_visitor_id = db.Column(db.String(128), unique=True, index=True, nullable=True)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
-    posts = db.relationship('Post', backref='author', lazy='dynamic')
+    posts = db.relationship("Post", backref="author", lazy="dynamic", cascade="all, delete-orphan")
+    events = db.relationship("FingerprintEvent", backref="user", lazy="dynamic", cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

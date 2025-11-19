@@ -18,15 +18,30 @@
       window.fpPromise = null;
       return;
     }
+
+    // Base proxy URL and paths
+    const baseProxy = "https://metrics.vulturesofficial.org/tbRonqvMoe1gQv5V";
+    const loaderPath = "/L2ckRBE5ceQmY2jU";      // JS loader
+    const endpointPath = "/ZYV9z3bENEtPsVJt";    // events endpoint
+
+    // Build the loader URL
+    const loaderUrl = `${baseProxy}${loaderPath}?apiKey=${encodeURIComponent(window.FP_PUBLIC_KEY)}`;
+    const proxiedEndpoint = `${baseProxy}${endpointPath}`;
+
     try {
-      const { load } = await import(`https://fpjscdn.net/v3/${window.FP_PUBLIC_KEY}`);
-      const opts = {};
-      if (window.FP_REGION === 'eu' || window.FP_REGION === 'ap') {
-        opts.region = window.FP_REGION;   // ✅ only valid regions
-      }
-      window.fpPromise = load(opts);
+      // Load the agent from Cloudflare-proxied script
+      const FingerprintJS = await import(loaderUrl);
+
+      // Initialize the agent and route traffic through proxy + default endpoint
+      window.fpPromise = FingerprintJS.load({
+        endpoint: [
+          proxiedEndpoint,
+          FingerprintJS.defaultEndpoint
+        ]
+      });
+
     } catch (e) {
-      console.warn("Failed to load Fingerprint agent:", e);
+      console.warn("Failed to load Fingerprint agent via proxy:", e);
       window.fpPromise = null;
     }
   })();
@@ -35,11 +50,15 @@
 </head>
 <body>
   <header>
-    <h1><a href="{{ url_for('main.index') }}">My Blog</a></h1>
+    <h1><a href="{{ url_for('main.index') }}">Home</a></h1>
     <nav>
       {% if current_user.is_authenticated %}
         <span>Hi {{ current_user.username }}</span>
         <a href="{{ url_for('main.create_post') }}">New Post</a>
+        {% if current_user.is_admin %}
+      <!-- ADMIN-ONLY NAV ITEM -->
+      <a href="{{ url_for('admin.fp_events') }}">FP Events</a>
+    {% endif %}
         <a href="{{ url_for('auth.logout') }}">Logout</a>
       {% else %}
         <a href="{{ url_for('auth.login') }}">Login</a>
@@ -59,27 +78,5 @@
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
-<!--
-<script>
-  // Read keys from Flask config
- const FP_PUBLIC_KEY = "{{ FP_PUBLIC_KEY }}";
-  const FP_REGION = "{{ FP_REGION }}";
-
-  // Prepare a promise to load the agent once for use on registration
-  let fpPromise = null;
-  if (FP_PUBLIC_KEY) {
-    fpPromise = import('https://fpjscdn.net/v3/v9PsghOuL6bPysSyN4q2')
-      .then(FingerprintJS => {
-        const opts = {};
-        if (FP_REGION) opts.region = FP_REGION;
-        return FingerprintJS.load();
-      })
-      .catch(err => {
-        console.warn("Fingerprint agent failed to load", err);
-        return null; // keep going even if FP fails
-      });
-  }
-</script>
--->
 </body>
 </html>
