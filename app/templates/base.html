@@ -50,7 +50,7 @@
 </head>
 <body>
   <header>
-    <h1><a href="{{ url_for('main.index') }}">Home</a></h1>
+    <h1><a href="{{ url_for('main.index') }}">FP Demo Blog</a></h1>
     <nav>
       {% if current_user.is_authenticated %}
         <span>Hi {{ current_user.username }}</span>

@@ -1,19 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
   <h2>Register</h2>
-  <script type="module">
-  (async () => {
-    try {
-      const fp = await window.fpPromise;
-      const result = await fp.get({ extendedResult: true });
-
-      console.log("FP debug on registration page:");
-      console.log(result);
-    } catch (e) {
-      console.warn("Couldn't load FP result for debugging:", e);
-    }
-  })();
-</script>
   <form id="registerForm" method="post">
     <label>Username: <input name="username" required></label><br>
     <label>Email: <input name="email" type="email" required></label><br>
@@ -58,4 +45,46 @@
     });
   });
 </script>  
+<script type="module">
+    (async () => {
+      // Wait up to 5 seconds for fpPromise to be set by base.html loader
+      const maxWaitMs = 5000;
+      const start = performance.now();
+
+      while (!window.fpPromise && performance.now() - start < maxWaitMs) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+
+      if (!window.fpPromise) {
+        console.warn("FP debug: window.fpPromise never initialized (agent failed to load or script blocked).");
+        return;
+      }
+
+      let fp;
+      try {
+        fp = await window.fpPromise;
+      } catch (err) {
+        console.warn("FP debug: fpPromise rejected:", err);
+        return;
+      }
+
+      if (!fp || typeof fp.get !== "function") {
+        console.warn("FP debug: fpPromise resolved to unexpected value:", fp);
+        return;
+      }
+
+      try {
+        const result = await fp.get({ extendedResult: true, linkedId: "registration-debug" });
+
+        console.log("----- FP debug on /auth/register -----");
+        console.log("Visitor ID:", result.visitorId);
+        console.log("Request ID:", result.requestId);
+        console.log("Confidence:", result.confidence?.score);
+        console.log("Full result:", result);
+        console.log("--------------------------------------");
+      } catch (err) {
+        console.warn("FP debug: fp.get() failed:", err);
+      }
+    })();
+  </script>
 {% endblock %}
