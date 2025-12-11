@@ -15,94 +15,87 @@ def register():
         email = request.form['email'].strip()
         password = request.form['password']
 
-        # Values passed from the hidden inputs
-        fp_visitor_id = (request.form.get('fp_visitorId') or '').strip()
+        # ---- Hidden fields (UNTRUSTED) ----
         fp_request_id = (request.form.get('fp_requestId') or '').strip()
-        fp_confidence = (request.form.get('fp_confidence') or '').strip()
 
-        # ---- Basic username/email duplicate check ----
+        # ---- Basic duplicate checks ----
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('Username or email already exists', 'danger')
             return render_template('register.html')
 
-        # ---- Initialize Fingerprint-related variables so they're always defined ----
-        event_data = None
-        visitor_id = fp_visitor_id or None          # start with client-provided value
+        # ---- Initialize FP vars (unverified default) ----
+        fp_verified = False
+        visitor_id = None
         confidence_val = None
-        if fp_confidence:
-            try:
-                confidence_val = float(fp_confidence)
-            except ValueError:
-                confidence_val = None
-
         ip = None
         user_agent = None
+        event_data = None
 
-        # ---- If we got a requestId, call the Server API and override with server values ----
+        # ---- Attempt Server API verification ----
         if fp_request_id:
             try:
                 event_data = fetch_fp_event_by_request_id(fp_request_id)
             except Exception as e:
                 current_app.logger.exception("Fingerprint Server API failure: %s", e)
+                event_data = None
 
-            try:
-                prod = (event_data or {}).get("products", {})
-                ident = (prod.get("identification") or {}).get("data") or {}
+            if event_data:
+                try:
+                    prod = (event_data or {}).get("products", {})
+                    ident = (prod.get("identification") or {}).get("data") or {}
 
-                # Prefer server visitor_id over client
-                if ident.get("visitor_id"):
                     visitor_id = ident.get("visitor_id")
-
-                # Prefer server confidence over client
-                conf = ident.get("confidence") or {}
-                if conf.get("score") is not None:
+                    conf = ident.get("confidence") or {}
                     confidence_val = conf.get("score")
 
-                # Correct mapping based on your logged event
-                ip = ident.get("ip")
-                bd = ident.get("browser_details") or {}
-                user_agent = bd.get("user_agent")
-            except Exception:
-                # Don't break registration if the payload shape changes slightly
-                pass
+                    ip = ident.get("ip")
+                    bd = ident.get("browser_details") or {}
+                    user_agent = bd.get("user_agent")
 
-        # ---- Create an event row for *every* registration attempt ----
-        safe_event = to_plain_json(event_data) if event_data else None
+                    if visitor_id:
+                        fp_verified = True
 
+                except Exception:
+                    current_app.logger.exception("FP extraction failure")
+
+        # ---- Always log the attempt ----
         evt = FingerprintEvent(
-            phase="registration_attempt",           # will update later
-            user_id=None,                           # no user yet
-            visitor_id=visitor_id or (fp_visitor_id or "unknown"),
+            phase="registration_attempt",
+            user_id=None,
+            visitor_id=visitor_id or "unverified",
             request_id=fp_request_id,
             confidence=confidence_val,
             ip=ip,
             user_agent=user_agent,
-            raw_event=safe_event
+            raw_event=to_plain_json(event_data) if event_data else None
         )
-        db.session.add(evt)   # don't commit yet
+        db.session.add(evt)
 
-        # ---- Enforce one-device-one-account using visitor_id ----
-        MIN_CONFIDENCE = 0.8
-        if visitor_id and (confidence_val is None or confidence_val >= MIN_CONFIDENCE):
-            existing = User.query.filter_by(reg_visitor_id=visitor_id).first()
-            if existing:
-                # Mark this event as a blocked attempt and commit it
-                evt.phase = "registration_blocked"
-                db.session.commit()
+        # ---- Enforce uniqueness ONLY IF VERIFIED ----
+        if fp_verified and visitor_id:
+            MIN_CONFIDENCE = 0.8
+            if confidence_val is None or confidence_val >= MIN_CONFIDENCE:
+                existing = User.query.filter_by(reg_visitor_id=visitor_id).first()
+                if existing:
+                    evt.phase = "registration_blocked"
+                    db.session.commit()
+                    flash("This device has already been used to register an account.", "danger")
+                    return render_template("register.html")
 
-                flash("This device has already been used to register an account.", "danger")
-                return render_template("register.html")
-
-        # ---- Create user (now visitor_id is definitely defined) ----
+        # ---- Create user ----
         user = User(username=username, email=email)
         user.set_password(password)
-        user.reg_visitor_id = visitor_id  # can be None if we didn't get anything
+
+        # Bind only verified device IDs
+        if fp_verified and visitor_id:
+            user.reg_visitor_id = visitor_id
+
         db.session.add(user)
         db.session.commit()
 
-        # ---- Link the event to the user and mark as successful registration ----
+        # ---- Update event ----
         evt.user_id = user.id
-        evt.phase = "registration"
+        evt.phase = "registration" if fp_verified else "registration_unverified"
         db.session.commit()
 
         flash('Registration successful — please log in', 'success')
