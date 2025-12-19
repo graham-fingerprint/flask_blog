@@ -35,30 +35,29 @@ def register():
 
         # ---- Unseal the sealedResult on the backend ----
         if fp_sealed:
-            try:
-                events_response = unseal_fp_event_response(fp_sealed)
-                # events_response has the same structure as /events
-                # Typically: events_response.products.identification.data
-                products = getattr(events_response, "products", None) or {}
-                ident = (products.get("identification") or {}).get("data") or {}
+        try:
+            events_response = unseal_fp_event_response(fp_sealed)  # or unseal_fp_events_response if you kept the old name
 
-                visitor_id = ident.get("visitor_id")
-                conf = ident.get("confidence") or {}
-                confidence_val = conf.get("score")
+        # ✅ Convert to a normal dict immediately
+        event_data = events_response.to_dict() if hasattr(events_response, "to_dict") else events_response
 
-                ip = ident.get("ip")
-                bd = ident.get("browser_details") or {}
-                user_agent = bd.get("user_agent")
+        # ✅ Now extract from dict safely
+        prod = (event_data or {}).get("products", {})
+        ident = (prod.get("identification") or {}).get("data") or {}
 
-                # For logging, we might want a plain dict form of the response
-                # depending on how your JSON serializer works. Many SDK models
-                # have a to_dict() method.
-                event_data = events_response.to_dict() if hasattr(events_response, "to_dict") else None
+        visitor_id = ident.get("visitor_id")
+        conf = ident.get("confidence") or {}
+        confidence_val = conf.get("score")
 
-                if visitor_id:
-                    fp_verified = True
-            except Exception as e:
-                current_app.logger.exception("Failed to unseal Fingerprint sealedResult: %s", e)
+        ip = ident.get("ip")
+        bd = ident.get("browser_details") or {}
+        user_agent = bd.get("user_agent")
+
+        if visitor_id:
+            fp_verified = True
+
+        except Exception as e:
+        current_app.logger.exception("Failed to unseal Fingerprint sealedResult: %s", e)
 
         # ---- Log the attempt ----
         safe_event = to_plain_json(event_data) if event_data else None
