@@ -7,9 +7,8 @@
     <label>Password: <input type="password" name="password" required></label><br>
 
 <!-- Hidden fields populated by Fingerprint just before submit -->
-    <input type="hidden" name="fp_visitorId">
-    <input type="hidden" name="fp_requestId">
-    <input type="hidden" name="fp_confidence">
+<input type="hidden" name="fp_sealed_result" id="fp_sealed_result">
+<input type="hidden" name="fp_requestId" id="fp_requestId">
 
     <button id="registerBtn" type="submit">Register</button>
   </form>
@@ -22,15 +21,21 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       btn.disabled = true;
+      
       try {
         if (window.fpPromise) {
           const fp = await window.fpPromise;
           if (fp) {
             const result = await fp.get({ extendedResult: true, linkedId: "registration" });
-            form.elements['fp_visitorId'].value = result.visitorId || "";
+            
             form.elements['fp_requestId'].value = result.requestId || "";
-            form.elements['fp_confidence'].value = (result.confidence && result.confidence.score) || "";
-            console.log("FP OK:", result.visitorId, result.requestId, result.confidence?.score);
+            form.elements['fp_sealed_result'].value = result.sealedResult || "";
+
+          if (!result.sealedResult) {
+            console.warn("Fingerprint sealedResult is missing. (Did you activate the encryption key in the Fingerprint dashboard?)");
+          }
+
+            console.log("FP OK (sealed):", result.requestId, "sealedResult bytes:", result.sealedResult ? result.sealedResult.length : 0);
           } else {
             console.warn("fpPromise is null");
           }
@@ -75,12 +80,11 @@
 
       try {
         const result = await fp.get({ extendedResult: true, linkedId: "registration-debug" });
-
+        
         console.log("----- FP debug on /auth/register -----");
-        console.log("Visitor ID:", result.visitorId);
         console.log("Request ID:", result.requestId);
-        console.log("Confidence:", result.confidence?.score);
-        console.log("Full result:", result);
+        console.log("SealedResult length:", result.sealedResult ? result.sealedResult.length : 0);
+        console.log("Full client result:", result);
         console.log("--------------------------------------");
       } catch (err) {
         console.warn("FP debug: fp.get() failed:", err);

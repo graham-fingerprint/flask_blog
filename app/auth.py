@@ -5,6 +5,7 @@ from .fp_client import fetch_fp_event_by_request_id
 from . import db
 from flask_login import login_user, logout_user, login_required, current_user
 from app.json_utils import to_plain_json
+from .sealed_fp import unseal_fp_events_response
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -15,15 +16,16 @@ def register():
         email = request.form['email'].strip()
         password = request.form['password']
 
-        # ---- Hidden fields (UNTRUSTED) ----
-        fp_request_id = (request.form.get('fp_requestId') or '').strip()
+        # ---- Hidden fields ----
+        fp_sealed = (request.form.get('fp_sealed_result') or '').strip()
+        fp_request_id = (request.form.get('fp_requestId') or '').strip()  # optional, for logging/fallback later
 
         # ---- Basic duplicate checks ----
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('Username or email already exists', 'danger')
             return render_template('register.html')
 
-        # ---- Initialize FP vars (unverified default) ----
+        # ---- Initialize FP vars ----
         fp_verified = False
         visitor_id = None
         confidence_val = None
@@ -31,47 +33,49 @@ def register():
         user_agent = None
         event_data = None
 
-        # ---- Attempt Server API verification ----
-        if fp_request_id:
+        # ---- Unseal the sealedResult on the backend ----
+        if fp_sealed:
             try:
-                event_data = fetch_fp_event_by_request_id(fp_request_id)
+                events_response = unseal_fp_events_response(fp_sealed)
+                # events_response has the same structure as /events
+                # Typically: events_response.products.identification.data
+                products = getattr(events_response, "products", None) or {}
+                ident = (products.get("identification") or {}).get("data") or {}
+
+                visitor_id = ident.get("visitor_id")
+                conf = ident.get("confidence") or {}
+                confidence_val = conf.get("score")
+
+                ip = ident.get("ip")
+                bd = ident.get("browser_details") or {}
+                user_agent = bd.get("user_agent")
+
+                # For logging, we might want a plain dict form of the response
+                # depending on how your JSON serializer works. Many SDK models
+                # have a to_dict() method.
+                event_data = events_response.to_dict() if hasattr(events_response, "to_dict") else None
+
+                if visitor_id:
+                    fp_verified = True
             except Exception as e:
-                current_app.logger.exception("Fingerprint Server API failure: %s", e)
-                event_data = None
+                current_app.logger.exception("Failed to unseal Fingerprint sealedResult: %s", e)
 
-            if event_data:
-                try:
-                    prod = (event_data or {}).get("products", {})
-                    ident = (prod.get("identification") or {}).get("data") or {}
+        # ---- Log the attempt ----
+        safe_event = to_plain_json(event_data) if event_data else None
 
-                    visitor_id = ident.get("visitor_id")
-                    conf = ident.get("confidence") or {}
-                    confidence_val = conf.get("score")
-
-                    ip = ident.get("ip")
-                    bd = ident.get("browser_details") or {}
-                    user_agent = bd.get("user_agent")
-
-                    if visitor_id:
-                        fp_verified = True
-
-                except Exception:
-                    current_app.logger.exception("FP extraction failure")
-
-        # ---- Always log the attempt ----
         evt = FingerprintEvent(
             phase="registration_attempt",
             user_id=None,
             visitor_id=visitor_id or "unverified",
-            request_id=fp_request_id,
+            request_id=fp_request_id,      # still useful for debugging / replay protection
             confidence=confidence_val,
             ip=ip,
             user_agent=user_agent,
-            raw_event=to_plain_json(event_data) if event_data else None
+            raw_event=safe_event,
         )
         db.session.add(evt)
 
-        # ---- Enforce uniqueness ONLY IF VERIFIED ----
+        # ---- Enforce one-device-one-account ONLY if sealed data is verified ----
         if fp_verified and visitor_id:
             MIN_CONFIDENCE = 0.8
             if confidence_val is None or confidence_val >= MIN_CONFIDENCE:
@@ -86,14 +90,14 @@ def register():
         user = User(username=username, email=email)
         user.set_password(password)
 
-        # Bind only verified device IDs
+        # Tie this device to the user only if we have verified device identity
         if fp_verified and visitor_id:
             user.reg_visitor_id = visitor_id
 
         db.session.add(user)
         db.session.commit()
 
-        # ---- Update event ----
+        # ---- Update event with user info & final phase ----
         evt.user_id = user.id
         evt.phase = "registration" if fp_verified else "registration_unverified"
         db.session.commit()
