@@ -34,30 +34,30 @@ def register():
         event_data = None
 
         # ---- Unseal the sealedResult on the backend ----
-        if fp_sealed:
+    if fp_sealed:
         try:
             events_response = unseal_fp_event_response(fp_sealed)  # or unseal_fp_events_response if you kept the old name
 
-        # ✅ Convert to a normal dict immediately
-        event_data = events_response.to_dict() if hasattr(events_response, "to_dict") else events_response
+            # ✅ Convert to a normal dict immediately
+            event_data = events_response.to_dict() if hasattr(events_response, "to_dict") else events_response
 
-        # ✅ Now extract from dict safely
-        prod = (event_data or {}).get("products", {})
-        ident = (prod.get("identification") or {}).get("data") or {}
+            # ✅ Now extract from dict safely
+            prod = (event_data or {}).get("products", {})
+            ident = (prod.get("identification") or {}).get("data") or {}
 
-        visitor_id = ident.get("visitor_id")
-        conf = ident.get("confidence") or {}
-        confidence_val = conf.get("score")
+            visitor_id = ident.get("visitor_id")
+            conf = ident.get("confidence") or {}
+            confidence_val = conf.get("score")
 
-        ip = ident.get("ip")
-        bd = ident.get("browser_details") or {}
-        user_agent = bd.get("user_agent")
+            ip = ident.get("ip")
+            bd = ident.get("browser_details") or {}
+            user_agent = bd.get("user_agent")
 
-        if visitor_id:
-            fp_verified = True
+            if visitor_id:
+                fp_verified = True
 
         except Exception as e:
-        current_app.logger.exception("Failed to unseal Fingerprint sealedResult: %s", e)
+            current_app.logger.exception("Failed to unseal Fingerprint sealedResult: %s", e)
 
         # ---- Log the attempt ----
         safe_event = to_plain_json(event_data) if event_data else None
