@@ -5,7 +5,7 @@ from .fp_client import fetch_fp_event_by_request_id
 from . import db
 from flask_login import login_user, logout_user, login_required, current_user
 from app.json_utils import to_plain_json
-from .sealed_fp import unseal_fp_events_response
+from .sealed_fp import unseal_fp_event_response
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -36,7 +36,7 @@ def register():
         # ---- Unseal the sealedResult on the backend ----
         if fp_sealed:
             try:
-                events_response = unseal_fp_events_response(fp_sealed)
+                events_response = unseal_fp_event_response(fp_sealed)
                 # events_response has the same structure as /events
                 # Typically: events_response.products.identification.data
                 products = getattr(events_response, "products", None) or {}

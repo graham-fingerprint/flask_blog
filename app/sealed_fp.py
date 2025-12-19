@@ -2,17 +2,14 @@
 import base64
 from flask import current_app
 
-from fingerprint_pro_server_api_sdk.sealed import (
-    unseal_events_response,
+# ✅ Import from the top-level package (works with the SDK version on Render)
+from fingerprint_pro_server_api_sdk import (
+    unseal_event_response,
     DecryptionKey,
     DecryptionAlgorithm,
 )
 
-def unseal_fp_events_response(sealed_b64: str):
-   
-    # Take base64 sealedResult string from the JS agent,
-    # return EventResponse object (same as /events payload).
-    
+def unseal_fp_event_response(sealed_b64: str):
     if not sealed_b64:
         return None
 
@@ -25,5 +22,6 @@ def unseal_fp_events_response(sealed_b64: str):
 
     keys = [DecryptionKey(key_bytes, DecryptionAlgorithm["Aes256Gcm"])]
 
-    events_response = unseal_events_response(sealed_bytes, keys)
-    return events_response
+    # ✅ Call the singular function
+    event_response = unseal_event_response(sealed_bytes, keys)
+    return event_response
